@@ -1,0 +1,77 @@
+<!doctype html>
+<html>
+<head>
+  <title>Real-Time Activity Analytics</title>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-streaming@1.9.0/dist/chartjs-plugin-streaming.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; }
+    #videoContainer { text-align: center; }
+  </style>
+</head>
+<body>
+  <h1>Real-Time Video Stream & Activity Analytics</h1>
+  <div id="videoContainer">
+    <img src="{{ url_for('video_feed') }}" style="width:640px; height:480px;" />
+  </div>
+  <h2>Activity Analytics</h2>
+  <canvas id="activityChart" width="800" height="400"></canvas>
+
+  <script>
+    var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port);
+    
+    // Setup Chart.js with streaming plugin.
+    var ctx = document.getElementById('activityChart').getContext('2d');
+    var chartData = {
+      datasets: [{
+        label: 'Predicted Activity',
+        borderColor: 'rgba(75, 192, 192, 1)',
+        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+        data: []
+      }]
+    };
+    var activityChart = new Chart(ctx, {
+      type: 'line',
+      data: chartData,
+      options: {
+        scales: {
+          xAxes: [{
+            type: 'realtime',
+            realtime: {
+              delay: 2000,
+              onRefresh: function(chart) {
+                // Data is added via socket event below.
+              }
+            }
+          }],
+          yAxes: [{
+            ticks: {
+              beginAtZero: true,
+              stepSize: 1
+            }
+          }]
+        },
+        plugins: {
+          streaming: {
+            frameRate: 30
+          }
+        }
+      }
+    });
+
+    // Listen for inference results from the server.
+    socket.on('inference_result', function(data) {
+      console.log("Inference result:", data);
+      // Append the prediction (numeric) to the chart.
+      chartData.datasets[0].data.push({
+        x: Date.now(),
+        y: data.prediction
+      });
+      activityChart.update({
+        preservation: true
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+torch 
+torchvision 
+flask 
+flask-socketio 
+eventlet 
+opencv-python 
+numpy 
+pillow
+pylint
